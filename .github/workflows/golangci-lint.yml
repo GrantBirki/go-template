@@ -27,4 +27,4 @@ jobs:
         run: script/bootstrap
 
       - name: run golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        run: golangci-lint run ./...
