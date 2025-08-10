@@ -4,8 +4,33 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
+
+// createTestRootCmd creates a fresh root command for testing to avoid state interference
+func createTestRootCmd() *cobra.Command {
+	var testName string
+
+	cmd := &cobra.Command{
+		Use:   "go-template",
+		Short: "A simple CLI template built with Cobra",
+		Long: `A simple CLI template built with Cobra.
+
+This is a template project for building CLI applications in Go using the Cobra library.
+You can use this as a starting point for your own CLI applications.`,
+		Run: func(cmd *cobra.Command, args []string) {
+			if testName != "" {
+				cmd.Printf("Hello %s!\n", testName)
+			} else {
+				cmd.Printf("Hello World!\n")
+			}
+		},
+	}
+
+	cmd.Flags().StringVarP(&testName, "name", "n", "", "Name to greet (optional)")
+	return cmd
+}
 
 func TestRootCmd(t *testing.T) {
 	tests := []struct {
@@ -32,17 +57,17 @@ func TestRootCmd(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Reset the name variable for each test
-			name = ""
+			// Create a fresh command for each test
+			cmd := createTestRootCmd()
 
 			// Capture output
 			buf := new(bytes.Buffer)
-			rootCmd.SetOut(buf)
-			rootCmd.SetErr(buf)
+			cmd.SetOut(buf)
+			cmd.SetErr(buf)
 
 			// Set args and execute
-			rootCmd.SetArgs(tt.args)
-			err := rootCmd.Execute()
+			cmd.SetArgs(tt.args)
+			err := cmd.Execute()
 
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, buf.String())
@@ -51,17 +76,17 @@ func TestRootCmd(t *testing.T) {
 }
 
 func TestRootCmdHelp(t *testing.T) {
-	// Reset the name variable
-	name = ""
+	// Create a fresh command for the help test
+	cmd := createTestRootCmd()
 
 	// Capture output
 	buf := new(bytes.Buffer)
-	rootCmd.SetOut(buf)
-	rootCmd.SetErr(buf)
+	cmd.SetOut(buf)
+	cmd.SetErr(buf)
 
 	// Test help command
-	rootCmd.SetArgs([]string{"--help"})
-	err := rootCmd.Execute()
+	cmd.SetArgs([]string{"--help"})
+	err := cmd.Execute()
 
 	assert.NoError(t, err)
 	output := buf.String()
