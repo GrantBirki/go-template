@@ -20,7 +20,7 @@ if [[ "${CI:-}" == "true" ]]; then
     GOLANGCI_LINT_VERSION=$(cat .golangci-lint-version)
     echo "GOLANGCI_LINT_VERSION=${GOLANGCI_LINT_VERSION}" >> $GITHUB_OUTPUT
     echo "Using golangci-lint version ${GOLANGCI_LINT_VERSION}"
-    sudo dpkg -i vendor_bin/golangci-lint_${GOLANGCI_LINT_VERSION}_amd64.deb
+    sudo dpkg -i vendor_bin/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.deb
   fi
 fi
 
