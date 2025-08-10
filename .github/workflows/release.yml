@@ -41,7 +41,10 @@ jobs:
         uses: actions/upload-artifact@4.6.2
         id: upload-artifact
         with:
+          name: dist
           path: dist/
+          retention-days: 5
+          if-no-files-found: error
 
   sign:
     needs: release
@@ -51,29 +54,31 @@ jobs:
       attestations: write
       contents: read
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@5.0.0
         with:
           artifact-ids: ${{ needs.release.outputs.artifact-id }}
+          path: "dist/"
 
       - name: attest build provenance
         uses: actions/attest-build-provenance@v2.4.0
         with:
-          subject-path: "."
+          subject-path: "dist/"
 
   verify:
     permissions: {}
     runs-on: ubuntu-latest
     needs: [release, sign]
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@5.0.0
         with:
           artifact-ids: ${{ needs.release.outputs.artifact-id }}
+          path: "dist/"
 
       - name: verify
         env:
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name }}
-          ARTIFACT_PATH: "."
+          ARTIFACT_PATH: "dist/"
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Scanning for files in $ARTIFACT_PATH"
