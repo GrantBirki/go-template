@@ -18,13 +18,13 @@ jobs:
 
     steps:
       - name: checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # pin@v4
+        uses: actions/checkout@ff7abcd0c3c05ccf6adc123a8cd1fd4fb30fb493 # pin@v4
         with:
           fetch-depth: 0
           persist-credentials: false
 
       - name: setup go
-        uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # pin@v5
+        uses: actions/setup-go@faf52423ec0d44c58f68e83b614bfcd99dded66f # pin@v5
         with:
           go-version-file: "go.mod"
           cache: false
@@ -38,7 +38,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: upload artifact
-        uses: actions/upload-artifact@4.6.2
+        uses: actions/upload-artifact@v5.0.0
         id: upload-artifact
         with:
           name: dist
@@ -54,13 +54,13 @@ jobs:
       attestations: write
       contents: read
     steps:
-      - uses: actions/download-artifact@5.0.0
+      - uses: actions/download-artifact@v6.0.0
         with:
           artifact-ids: ${{ needs.release.outputs.artifact-id }}
           path: "dist/"
 
       - name: attest build provenance
-        uses: actions/attest-build-provenance@v2.4.0
+        uses: actions/attest-build-provenance@v3.0.0
         with:
           subject-path: "dist/"
 
@@ -69,7 +69,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release, sign]
     steps:
-      - uses: actions/download-artifact@5.0.0
+      - uses: actions/download-artifact@v6.0.0
         with:
           artifact-ids: ${{ needs.release.outputs.artifact-id }}
           path: "dist/"
