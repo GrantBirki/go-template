@@ -1,27 +1,26 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-
 source script/env "$@"
+say(){ printf "%b[%s]%b %s\n" "$1" "$2" "$OFF" "$3"; }
 
-assert_nothing_changed() {
-  local diff
-  if ! "$@" >/dev/null; then
-    return 1
-  fi
-  if ! diff="$(git diff -U1 --color --exit-code)"; then
-    printf '\e[31mError: running `\e[1m%s\e[22m` results in modifications that you must check into version control:\e[0m\n%s\n\n' "$*" "$diff" >&2
-    git checkout -- .
-    STATUS=1
-  fi
-}
+say "$BLUE" lint "Formatting Go files"
+go fmt -mod=vendor ./...
+say "$GREEN" ok "Formatting done"
+
+say "$BLUE" lint "Tidying modules"
+go mod tidy
+say "$GREEN" ok "Modules tidy"
 
 if [[ "${CI:-}" == "true" ]]; then
-  STATUS=0
-  assert_nothing_changed go fmt -mod=vendor ./...
-  assert_nothing_changed go mod tidy
-  exit $STATUS
+  if git diff --quiet; then
+    say "$GREEN" ok "Clean after lint"
+  else
+    say "$RED" fail "Lint produced changes. Run script/lint locally and commit."
+    git --no-pager diff --stat
+    git --no-pager diff -U1
+    git checkout -- .
+    exit 1
+  fi
 fi
-
-go fmt -mod=vendor ./...
-go mod tidy
+say "$GREEN" ok "Lint checks passed"
