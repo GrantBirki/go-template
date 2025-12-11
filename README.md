@@ -156,3 +156,13 @@ export GOFLAGS="-mod=vendor"  # Force vendor mode
 - **Lint**: Code formatting and linting checks
 - **Build**: Verifies builds work on multiple platforms
 - **Release**: Triggered by git tags, creates signed releases with SLSA attestations
+
+## Vendored tools
+
+The `vendor_bin` dir is where binaries built from vendored Go sources live (no prebuilt archives). `script/bootstrap` builds `goreleaser` from the vendored module pinned in `tools/tools.go` and `go.mod`, keeping CI offline and reproducible.
+
+To bump goreleaser:
+
+1. Update the version in `go.mod`.
+2. `GOFLAGS='-tags=tools' go mod tidy && GOFLAGS='-tags=tools' go mod vendor`
+3. `go build -mod=vendor -tags=tools -o vendor_bin/goreleaser github.com/goreleaser/goreleaser/v2`

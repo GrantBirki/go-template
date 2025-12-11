@@ -12,7 +12,7 @@ ensure_goreleaser() {
     return
   fi
 
-  GORELEASER_VERSION=$(cat .goreleaser-version)
+  GORELEASER_VERSION=$(go list -m -mod=vendor -f '{{.Version}}' github.com/goreleaser/goreleaser/v2)
   echo "Using goreleaser version ${GORELEASER_VERSION}"
   go build -mod=vendor -tags=tools -o "${DIR}/vendor_bin/goreleaser" github.com/goreleaser/goreleaser/v2
 }
