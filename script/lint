@@ -4,4 +4,24 @@ set -euo pipefail
 
 source script/env "$@"
 
+assert_nothing_changed() {
+  local diff
+  if ! "$@" >/dev/null; then
+    return 1
+  fi
+  if ! diff="$(git diff -U1 --color --exit-code)"; then
+    printf '\e[31mError: running `\e[1m%s\e[22m` results in modifications that you must check into version control:\e[0m\n%s\n\n' "$*" "$diff" >&2
+    git checkout -- .
+    STATUS=1
+  fi
+}
+
+if [[ "${CI:-}" == "true" ]]; then
+  STATUS=0
+  assert_nothing_changed go fmt -mod=vendor ./...
+  assert_nothing_changed go mod tidy
+  exit $STATUS
+fi
+
 go fmt -mod=vendor ./...
+go mod tidy
