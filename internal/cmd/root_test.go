@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/assert"
 )
 
 // createTestRootCmd creates a fresh root command for testing to avoid state interference
@@ -69,8 +69,12 @@ func TestRootCmd(t *testing.T) {
 			cmd.SetArgs(tt.args)
 			err := cmd.Execute()
 
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expected, buf.String())
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+			if buf.String() != tt.expected {
+				t.Fatalf("expected output %q, got %q", tt.expected, buf.String())
+			}
 		})
 	}
 }
@@ -88,14 +92,24 @@ func TestRootCmdHelp(t *testing.T) {
 	cmd.SetArgs([]string{"--help"})
 	err := cmd.Execute()
 
-	assert.NoError(t, err)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	output := buf.String()
 
 	// Check that help output contains expected elements
-	assert.Contains(t, output, "A simple CLI template built with Cobra")
-	assert.Contains(t, output, "Usage:")
-	assert.Contains(t, output, "go-template [flags]")
-	assert.Contains(t, output, "Flags:")
-	assert.Contains(t, output, "-h, --help")
-	assert.Contains(t, output, "-n, --name string")
+	mustContain := []string{
+		"A simple CLI template built with Cobra",
+		"Usage:",
+		"go-template [flags]",
+		"Flags:",
+		"-h, --help",
+		"-n, --name string",
+	}
+
+	for _, substr := range mustContain {
+		if !strings.Contains(output, substr) {
+			t.Fatalf("expected help output to contain %q", substr)
+		}
+	}
 }
