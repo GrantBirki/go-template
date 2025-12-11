@@ -30,3 +30,5 @@ tmp/
 
 /go-template
 /go-template.exe
+
+vendor_bin/
