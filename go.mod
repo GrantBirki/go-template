@@ -3,7 +3,7 @@ module github.com/grantbirki/go-template
 go 1.25.5
 
 require (
-	github.com/goreleaser/goreleaser/v2 v2.11.2
+	github.com/goreleaser/goreleaser/v2 v2.13.1
 	github.com/spf13/cobra v1.9.1
 )
 
