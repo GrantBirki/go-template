@@ -123,9 +123,9 @@ func doRun(ctx *context.Context, aur config.AUR, cl client.ReleaseURLTemplater) 
 				),
 			),
 		),
-		artifact.Or(
-			artifact.ByType(artifact.UploadableArchive),
-			artifact.ByType(artifact.UploadableBinary),
+		artifact.ByTypes(
+			artifact.UploadableArchive,
+			artifact.UploadableBinary,
 		),
 	}
 	if len(aur.IDs) > 0 {
@@ -309,7 +309,7 @@ func dataFor(ctx *context.Context, cfg config.AUR, cl client.ReleaseURLTemplater
 		Name:         cfg.Name,
 		Desc:         cfg.Description,
 		Homepage:     cfg.Homepage,
-		Version:      fmt.Sprintf("%d.%d.%d", ctx.Semver.Major, ctx.Semver.Minor, ctx.Semver.Patch),
+		Version:      strings.ReplaceAll(ctx.Version, "-", "_"),
 		License:      cfg.License,
 		Rel:          cfg.Rel,
 		Maintainers:  cfg.Maintainers,
@@ -342,7 +342,7 @@ func dataFor(ctx *context.Context, cfg config.AUR, cl client.ReleaseURLTemplater
 		}
 
 		releasePackage := releasePackage{
-			DownloadURL: url,
+			DownloadURL: strings.ReplaceAll(url, result.Version, "${pkgver}"),
 			SHA256:      sum,
 			Arch:        toPkgBuildArch(art.Goarch + art.Goarm),
 			Format:      art.Format(),

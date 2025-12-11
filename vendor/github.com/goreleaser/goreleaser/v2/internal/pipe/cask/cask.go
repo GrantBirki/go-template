@@ -67,12 +67,22 @@ func (Pipe) Default(ctx *context.Context) error {
 		if brew.Directory != "Casks" {
 			log.Warnf("%q might not work properly for your end users, for reference, the default is \"Casks\"", brew.Directory)
 		}
-		if brew.Binary == "" {
-			brew.Binary = brew.Name
+		if brew.Binary != "" {
+			deprecate.Notice(ctx, "homebrew_casks.binary")
+			brew.Binaries = append(brew.Binaries, brew.Binary)
+		}
+		if len(brew.Binaries) == 0 || brew.Binaries[0] == "" {
+			brew.Binaries = []string{brew.Name}
 		}
 		if brew.Manpage != "" {
 			deprecate.Notice(ctx, "homebrew_casks.manpage")
 			brew.Manpages = append(brew.Manpages, brew.Manpage)
+		}
+		for _, conflict := range brew.Conflicts {
+			if conflict.Formula != "" {
+				deprecate.Notice(ctx, "homebrew_casks.conflicts.formula")
+				break
+			}
 		}
 	}
 
@@ -201,15 +211,8 @@ func doRun(ctx *context.Context, brew config.HomebrewCask, cl client.ReleaseURLT
 	}
 
 	filters := []artifact.Filter{
-		artifact.Or(
-			artifact.ByGoos("darwin"),
-			artifact.ByGoos("linux"),
-		),
-		artifact.Or(
-			artifact.ByGoarch("amd64"),
-			artifact.ByGoarch("arm64"),
-			artifact.ByGoarch("all"),
-		),
+		artifact.ByGooses("darwin", "linux"),
+		artifact.ByGoarches("amd64", "arm64", "all"),
 		artifact.Or(
 			artifact.And(
 				artifact.Not(artifact.ByFormats("gz")),
@@ -233,7 +236,6 @@ func doRun(ctx *context.Context, brew config.HomebrewCask, cl client.ReleaseURLT
 	if err := tmpl.New(ctx).ApplyAll(
 		&brew.Name,
 		&brew.SkipUpload,
-		&brew.Binary,
 		&brew.Completions.Bash,
 		&brew.Completions.Zsh,
 		&brew.Completions.Fish,
@@ -242,7 +244,20 @@ func doRun(ctx *context.Context, brew config.HomebrewCask, cl client.ReleaseURLT
 		return err
 	}
 
+	if err := tmpl.New(ctx).ApplySlice(&brew.Binaries); err != nil {
+		return err
+	}
+
 	if err := tmpl.New(ctx).ApplySlice(&brew.Manpages); err != nil {
+		return err
+	}
+
+	if err := tmpl.New(ctx).ApplyAll(
+		&brew.Hooks.Pre.Install,
+		&brew.Hooks.Pre.Uninstall,
+		&brew.Hooks.Post.Install,
+		&brew.Hooks.Post.Uninstall,
+	); err != nil {
 		return err
 	}
 
@@ -393,6 +408,7 @@ func dataFor(ctx *context.Context, cfg config.HomebrewCask, cl client.ReleaseURL
 		if err != nil {
 			return result, err
 		}
+		url.Download = strings.ReplaceAll(url.Download, ctx.Version, "#{version}")
 
 		pkg := releasePackage{
 			URL:    url,

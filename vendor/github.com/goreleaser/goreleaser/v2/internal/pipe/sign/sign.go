@@ -99,15 +99,16 @@ func (Pipe) Run(ctx *context.Context) error {
 					log.Warn("when artifacts is `source`, `ids` has no effect. ignoring")
 				}
 			case "all":
-				filters = append(filters, artifact.Or(
-					artifact.ByType(artifact.UploadableArchive),
-					artifact.ByType(artifact.UploadableBinary),
-					artifact.ByType(artifact.UploadableSourceArchive),
-					artifact.ByType(artifact.Checksum),
-					artifact.ByType(artifact.LinuxPackage),
-					artifact.ByType(artifact.SBOM),
-					artifact.ByType(artifact.PySdist),
-					artifact.ByType(artifact.PyWheel),
+				filters = append(filters, artifact.ByTypes(
+					artifact.UploadableArchive,
+					artifact.UploadableBinary,
+					artifact.UploadableSourceArchive,
+					artifact.Makeself,
+					artifact.Checksum,
+					artifact.LinuxPackage,
+					artifact.SBOM,
+					artifact.PySdist,
+					artifact.PyWheel,
 				))
 			case "archive":
 				filters = append(filters, artifact.ByType(artifact.UploadableArchive))
@@ -123,9 +124,7 @@ func (Pipe) Run(ctx *context.Context) error {
 				return fmt.Errorf("invalid list of artifacts to sign: %s", cfg.Artifacts)
 			}
 
-			if len(cfg.IDs) > 0 {
-				filters = append(filters, artifact.ByIDs(cfg.IDs...))
-			}
+			filters = append(filters, artifact.ByIDs(cfg.IDs...))
 			return sign(ctx, cfg, ctx.Artifacts.Filter(artifact.And(filters...)).List())
 		})
 	}
@@ -240,6 +239,11 @@ func signone(ctx *context.Context, cfg config.Sign, art *artifact.Artifact) ([]*
 		log = log.WithField("certificate", cert)
 	}
 
+	output, err := tmpl.New(ctx).WithEnv(env).Bool(cfg.Output)
+	if err != nil {
+		return nil, fmt.Errorf("sign failed: %s: %w", art.Name, err)
+	}
+
 	// The GoASTScanner flags this as a security risk.
 	// However, this works as intended. The nosec annotation
 	// tells the scanner to ignore this.
@@ -247,8 +251,8 @@ func signone(ctx *context.Context, cfg config.Sign, art *artifact.Artifact) ([]*
 	cmd := exec.CommandContext(ctx, cfg.Cmd, args...)
 	var b bytes.Buffer
 	w := gio.Safe(&b)
-	cmd.Stderr = io.MultiWriter(logext.NewConditionalWriter(cfg.Output), w)
-	cmd.Stdout = io.MultiWriter(logext.NewConditionalWriter(cfg.Output), w)
+	cmd.Stderr = io.MultiWriter(logext.NewConditionalWriter(output), w)
+	cmd.Stdout = io.MultiWriter(logext.NewConditionalWriter(output), w)
 	if stdin != nil {
 		cmd.Stdin = stdin
 	}

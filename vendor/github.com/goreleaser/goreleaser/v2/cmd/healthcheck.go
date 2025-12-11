@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	stdctx "context"
 	"errors"
 	"io"
 	"os/exec"
+	"strings"
 	"sync"
 
 	"github.com/caarlos0/log"
@@ -53,12 +55,20 @@ func newHealthcheckCmd() *healthcheckCmd {
 			defer log.ResetPadding()
 
 			var errs []error
-			for _, hc := range healthcheck.Healthcheckers {
+			for _, hc := range healthcheck.DependencyCheckers {
 				_ = skip.Maybe(hc, func(ctx *context.Context) error {
 					for _, tool := range hc.Dependencies(ctx) {
-						if err := checkPath(tool); err != nil {
+						if err := checkPath(ctx, tool); err != nil {
 							errs = append(errs, err)
 						}
+					}
+					return nil
+				})(ctx)
+			}
+			for _, hc := range healthcheck.HealthCheckers {
+				_ = skip.Maybe(hc, func(ctx *context.Context) error {
+					if err := check(hc.String(), hc.Healthcheck(ctx)); err != nil {
+						errs = append(errs, err)
 					}
 					return nil
 				})(ctx)
@@ -69,7 +79,7 @@ func newHealthcheckCmd() *healthcheckCmd {
 				return nil
 			}
 
-			return errors.New("one or more needed tools are not present")
+			return errors.New("one or more checks failed")
 		},
 	}
 
@@ -84,14 +94,33 @@ func newHealthcheckCmd() *healthcheckCmd {
 
 var toolsChecked = &sync.Map{}
 
-func checkPath(tool string) error {
+func check(name string, err error) error {
+	if err == nil {
+		st := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
+		log.Infof("%s %s", st.Render("✓"), codeStyle.Render(name))
+		return nil
+	}
+	st := log.Styles[log.ErrorLevel]
+	log.Warnf("%s %s - %s", st.Render("⚠"), codeStyle.Render(name), st.Render(err.Error()))
+	return err
+}
+
+func checkPath(ctx stdctx.Context, tool string) error {
 	if _, ok := toolsChecked.LoadOrStore(tool, true); ok {
 		return nil
 	}
-	if _, err := exec.LookPath(tool); err != nil {
+	args := strings.Fields(tool)
+	if _, err := exec.LookPath(args[0]); err != nil {
 		st := log.Styles[log.ErrorLevel]
 		log.Warnf("%s %s - %s", st.Render("⚠"), codeStyle.Render(tool), st.Render("not present in path"))
 		return err
+	}
+	if len(args) > 1 {
+		if err := exec.CommandContext(ctx, args[0], args[1:]...).Run(); err != nil {
+			st := log.Styles[log.ErrorLevel]
+			log.Warnf("%s %s - %s", st.Render("⚠"), codeStyle.Render(tool), st.Render("command failed"))
+			return err
+		}
 	}
 	st := lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
 	log.Infof("%s %s", st.Render("✓"), codeStyle.Render(tool))

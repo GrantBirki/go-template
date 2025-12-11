@@ -241,12 +241,14 @@ type DataDogService struct {
 // GitLab API docs:
 // https://docs.gitlab.com/api/project_integrations/#datadog
 type DataDogServiceProperties struct {
-	APIURL             string `url:"api_url,omitempty" json:"api_url,omitempty"`
-	DataDogEnv         string `url:"datadog_env,omitempty" json:"datadog_env,omitempty"`
-	DataDogService     string `url:"datadog_service,omitempty" json:"datadog_service,omitempty"`
-	DataDogSite        string `url:"datadog_site,omitempty" json:"datadog_site,omitempty"`
-	DataDogTags        string `url:"datadog_tags,omitempty" json:"datadog_tags,omitempty"`
-	ArchiveTraceEvents bool   `url:"archive_trace_events,omitempty" json:"archive_trace_events,omitempty"`
+	APIURL               string `url:"api_url,omitempty" json:"api_url,omitempty"`
+	DataDogEnv           string `url:"datadog_env,omitempty" json:"datadog_env,omitempty"`
+	DataDogService       string `url:"datadog_service,omitempty" json:"datadog_service,omitempty"`
+	DataDogSite          string `url:"datadog_site,omitempty" json:"datadog_site,omitempty"`
+	DataDogTags          string `url:"datadog_tags,omitempty" json:"datadog_tags,omitempty"`
+	ArchiveTraceEvents   bool   `url:"archive_trace_events,omitempty" json:"archive_trace_events,omitempty"`
+	DataDogCIVisibility  bool   `url:"datadog_ci_visibility,omitempty" json:"datadog_ci_visibility,omitempty"`
+	UseInheritedSettings bool   `url:"use_inherited_settings,omitempty" json:"use_inherited_settings,omitempty"`
 }
 
 // GetDataDogService gets DataDog service settings for a project.
@@ -258,7 +260,7 @@ func (s *ServicesService) GetDataDogService(pid any, options ...RequestOptionFun
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/services/datadog", PathEscape(project))
+	u := fmt.Sprintf("projects/%s/integrations/datadog", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
@@ -280,13 +282,15 @@ func (s *ServicesService) GetDataDogService(pid any, options ...RequestOptionFun
 // GitLab API docs:
 // https://docs.gitlab.com/api/project_integrations/#set-up-datadog
 type SetDataDogServiceOptions struct {
-	APIKey             *string `url:"api_key,omitempty" json:"api_key,omitempty"`
-	APIURL             *string `url:"api_url,omitempty" json:"api_url,omitempty"`
-	DataDogEnv         *string `url:"datadog_env,omitempty" json:"datadog_env,omitempty"`
-	DataDogService     *string `url:"datadog_service,omitempty" json:"datadog_service,omitempty"`
-	DataDogSite        *string `url:"datadog_site,omitempty" json:"datadog_site,omitempty"`
-	DataDogTags        *string `url:"datadog_tags,omitempty" json:"datadog_tags,omitempty"`
-	ArchiveTraceEvents *bool   `url:"archive_trace_events,omitempty" json:"archive_trace_events,omitempty"`
+	APIKey               *string `url:"api_key,omitempty" json:"api_key,omitempty"`
+	APIURL               *string `url:"api_url,omitempty" json:"api_url,omitempty"`
+	DataDogEnv           *string `url:"datadog_env,omitempty" json:"datadog_env,omitempty"`
+	DataDogService       *string `url:"datadog_service,omitempty" json:"datadog_service,omitempty"`
+	DataDogSite          *string `url:"datadog_site,omitempty" json:"datadog_site,omitempty"`
+	DataDogTags          *string `url:"datadog_tags,omitempty" json:"datadog_tags,omitempty"`
+	ArchiveTraceEvents   *bool   `url:"archive_trace_events,omitempty" json:"archive_trace_events,omitempty"`
+	DataDogCIVisibility  *bool   `url:"datadog_ci_visibility,omitempty" json:"datadog_ci_visibility,omitempty"`
+	UseInheritedSettings *bool   `url:"use_inherited_settings,omitempty" json:"use_inherited_settings,omitempty"`
 }
 
 // SetDataDogService sets DataDog service settings for a project.
@@ -298,7 +302,7 @@ func (s *ServicesService) SetDataDogService(pid any, opt *SetDataDogServiceOptio
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/services/datadog", PathEscape(project))
+	u := fmt.Sprintf("projects/%s/integrations/datadog", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
@@ -323,7 +327,7 @@ func (s *ServicesService) DeleteDataDogService(pid any, options ...RequestOption
 	if err != nil {
 		return nil, err
 	}
-	u := fmt.Sprintf("projects/%s/services/datadog", PathEscape(project))
+	u := fmt.Sprintf("projects/%s/integrations/datadog", PathEscape(project))
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
@@ -1225,7 +1229,7 @@ type JiraServiceProperties struct {
 	Username                     string   `json:"username" `
 	Password                     string   `json:"password" `
 	Active                       bool     `json:"active"`
-	JiraAuthType                 int      `json:"jira_auth_type"`
+	JiraAuthType                 int64    `json:"jira_auth_type"`
 	JiraIssuePrefix              string   `json:"jira_issue_prefix"`
 	JiraIssueRegex               string   `json:"jira_issue_regex"`
 	JiraIssueTransitionAutomatic bool     `json:"jira_issue_transition_automatic"`
@@ -1260,7 +1264,7 @@ func (p *JiraServiceProperties) UnmarshalJSON(b []byte) error {
 	case string:
 		p.JiraIssueTransitionID = id
 	case float64:
-		p.JiraIssueTransitionID = strconv.Itoa(int(id))
+		p.JiraIssueTransitionID = strconv.FormatInt(int64(id), 10)
 	default:
 		return fmt.Errorf("failed to unmarshal JiraTransitionID of type: %T", id)
 	}
@@ -1304,7 +1308,7 @@ type SetJiraServiceOptions struct {
 	Username                     *string   `url:"username,omitempty" json:"username,omitempty" `
 	Password                     *string   `url:"password,omitempty" json:"password,omitempty" `
 	Active                       *bool     `url:"active,omitempty" json:"active,omitempty"`
-	JiraAuthType                 *int      `url:"jira_auth_type,omitempty" json:"jira_auth_type,omitempty"`
+	JiraAuthType                 *int64    `url:"jira_auth_type,omitempty" json:"jira_auth_type,omitempty"`
 	JiraIssuePrefix              *string   `url:"jira_issue_prefix,omitempty" json:"jira_issue_prefix,omitempty"`
 	JiraIssueRegex               *string   `url:"jira_issue_regex,omitempty" json:"jira_issue_regex,omitempty"`
 	JiraIssueTransitionAutomatic *bool     `url:"jira_issue_transition_automatic,omitempty" json:"jira_issue_transition_automatic,omitempty"`
@@ -2145,7 +2149,7 @@ func (s *ServicesService) DeleteSlackSlashCommandsService(pid any, options ...Re
 
 // TelegramService represents Telegram service settings.
 //
-// Gitlab API docs:
+// GitLab API docs:
 // https://docs.gitlab.com/api/project_integrations/#telegram
 type TelegramService struct {
 	Service

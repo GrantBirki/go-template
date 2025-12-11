@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/daemon"
 	"github.com/google/go-containerregistry/pkg/v1/google"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/ko/pkg/build"
@@ -215,6 +216,11 @@ func (o *buildOptions) makeBuilder(ctx *context.Context) (*build.Caching, error)
 
 			if cached, found := baseImages.Load(o.baseImage); found {
 				return ref, cached.(build.Result), nil
+			}
+
+			if localImage, _ := daemon.Image(ref); localImage != nil {
+				baseImages.Store(o.baseImage, localImage)
+				return ref, localImage, err
 			}
 
 			desc, err := remote.Get(

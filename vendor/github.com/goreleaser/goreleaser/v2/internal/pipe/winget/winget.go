@@ -1,4 +1,3 @@
-// Package winget creates winget manifests.
 package winget
 
 import (
@@ -259,10 +258,10 @@ func (p Pipe) doRun(ctx *context.Context, winget config.Winget, cl client.Releas
 
 func (p Pipe) publishAll(ctx *context.Context, cli client.Client) error {
 	skips := pipe.SkipMemento{}
-	for _, files := range ctx.Artifacts.Filter(artifact.Or(
-		artifact.ByType(artifact.WingetInstaller),
-		artifact.ByType(artifact.WingetVersion),
-		artifact.ByType(artifact.WingetDefaultLocale),
+	for _, files := range ctx.Artifacts.Filter(artifact.ByTypes(
+		artifact.WingetInstaller,
+		artifact.WingetVersion,
+		artifact.WingetDefaultLocale,
 	)).GroupByID() {
 		err := doPublish(ctx, cli, files)
 		if err != nil && pipe.IsSkip(err) {

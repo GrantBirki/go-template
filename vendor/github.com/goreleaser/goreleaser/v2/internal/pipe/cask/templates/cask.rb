@@ -6,6 +6,7 @@ cask "{{ .Name }}" do
   {{- end }}
 
   {{ end }}
+  name "{{ .Name }}"
   desc "{{ .Description }}"
   homepage "{{ .Homepage }}"
   version "{{ .Version }}"
@@ -14,8 +15,10 @@ cask "{{ .Name }}" do
     skip "Auto-generated on release."
   end
 
-  {{ with and (not .HasOnlyBinaryPkgs) .Binary }}
-  binary "{{ .}}"
+  {{ with and (not .HasOnlyBinaryPkgs) .Binaries }}
+  {{- range . }}
+  binary "{{ . }}"
+  {{- end }}
   {{- end }}
   {{- range .Manpages }}
   manpage "{{ .}}"

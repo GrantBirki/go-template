@@ -11,7 +11,6 @@ import (
 
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/lipgloss/v2"
-	"github.com/charmbracelet/x/term"
 	mango "github.com/muesli/mango-cobra"
 	"github.com/muesli/roff"
 	"github.com/spf13/cobra"
@@ -20,9 +19,6 @@ import (
 const shaLen = 7
 
 // ErrorHandler handles an error, printing them to the given [io.Writer].
-//
-// Note that this will only be used if the STDERR is a terminal, and should
-// be used for styling only.
 type ErrorHandler = func(w io.Writer, styles Styles, err error)
 
 // ColorSchemeFunc gets a [lipgloss.LightDarkFunc] and returns a [ColorScheme].
@@ -123,6 +119,14 @@ func Execute(ctx context.Context, root *cobra.Command, options ...Option) error 
 		option(&opts)
 	}
 
+	// Enable VT processing on Windows, otherwise, ANSI escape sequences might not work on older
+	// Windows versions. This is a no-op on other platforms.
+	for _, w := range []io.Writer{root.OutOrStdout(), root.ErrOrStderr()} {
+		// if we can't enable VT processing, just ignore it and continue
+		// without it.
+		_ = enableVirtualTerminalProcessing(w)
+	}
+
 	helpFunc := func(c *cobra.Command, _ []string) {
 		w := colorprofile.NewWriter(c.OutOrStdout(), os.Environ())
 		helpFn(c, w, makeStyles(mustColorscheme(opts.colorscheme)))
@@ -167,14 +171,6 @@ func Execute(ctx context.Context, root *cobra.Command, options ...Option) error 
 	}
 
 	if err := root.ExecuteContext(ctx); err != nil {
-		if w, ok := root.ErrOrStderr().(term.File); ok {
-			// if stderr is not a tty, simply print the error without any
-			// styling or going through an [ErrorHandler]:
-			if !term.IsTerminal(w.Fd()) {
-				_, _ = fmt.Fprintln(w, err.Error())
-				return err //nolint:wrapcheck
-			}
-		}
 		w := colorprofile.NewWriter(root.ErrOrStderr(), os.Environ())
 		opts.errHandler(w, makeStyles(mustColorscheme(opts.colorscheme)), err)
 		return err //nolint:wrapcheck

@@ -15,6 +15,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -329,18 +330,59 @@ func createDataTarball(info *nfpm.Info) (dataTarBall, md5sums []byte,
 		dataTarballWriteCloser io.WriteCloser
 	)
 
-	switch info.Deb.Compression {
-	case "", "gzip": // the default for now
-		dataTarballWriteCloser = gzip.NewWriter(&dataTarball)
+	if info.Deb.Compression == "" {
+		info.Deb.Compression = "gzip:-1" // the default for now
+	}
+
+	parts := strings.Split(info.Deb.Compression, ":")
+	if len(parts) > 2 {
+		return nil, nil, 0, "", fmt.Errorf("malformed compressor setting: %s", info.Deb.Compression)
+	}
+
+	compressorType := parts[0]
+	compressorLevel := ""
+	if len(parts) == 2 {
+		compressorLevel = parts[1]
+	}
+
+	switch compressorType {
+	case "gzip":
+		level := 9
+		if compressorLevel != "" {
+			var err error
+			level, err = strconv.Atoi(compressorLevel)
+			if err != nil {
+				return nil, nil, 0, "", fmt.Errorf("parse gzip compressor level: %w", err)
+			}
+		}
+		dataTarballWriteCloser, err = gzip.NewWriterLevel(&dataTarball, level)
+		if err != nil {
+			return nil, nil, 0, "", err
+		}
 		name = "data.tar.gz"
 	case "xz":
+		if compressorLevel != "" {
+			return nil, nil, 0, "", fmt.Errorf("no compressor level supported for xz: %s", compressorLevel)
+		}
 		dataTarballWriteCloser, err = xz.NewWriter(&dataTarball)
 		if err != nil {
 			return nil, nil, 0, "", err
 		}
 		name = "data.tar.xz"
 	case "zstd":
-		dataTarballWriteCloser, err = zstd.NewWriter(&dataTarball)
+		level := zstd.SpeedBetterCompression
+		if compressorLevel != "" {
+			if intLevel, err := strconv.Atoi(compressorLevel); err == nil {
+				level = zstd.EncoderLevelFromZstd(intLevel)
+			} else {
+				var ok bool
+				ok, level = zstd.EncoderLevelFromString(compressorLevel)
+				if !ok {
+					return nil, nil, 0, "", fmt.Errorf("invalid zstd compressor level: %s", compressorLevel)
+				}
+			}
+		}
+		dataTarballWriteCloser, err = zstd.NewWriter(&dataTarball, zstd.WithEncoderLevel(level))
 		if err != nil {
 			return nil, nil, 0, "", err
 		}
@@ -574,8 +616,10 @@ func createControl(instSize int64, md5sums []byte, info *nfpm.Info) (controlTarG
 	if err := newFileInsideTar(out, "./md5sums", md5sums, mtime); err != nil {
 		return nil, err
 	}
-	if err := newFileInsideTar(out, "./conffiles", conffiles(info), mtime); err != nil {
-		return nil, err
+	if conffiles, ok := conffiles(info); ok {
+		if err := newFileInsideTar(out, "./conffiles", conffiles, mtime); err != nil {
+			return nil, err
+		}
 	}
 
 	if triggers := createTriggers(info); len(triggers) > 0 {
@@ -675,7 +719,7 @@ func newFilePathInsideTar(out *tar.Writer, path, dest string, mode int64, modtim
 	})
 }
 
-func conffiles(info *nfpm.Info) []byte {
+func conffiles(info *nfpm.Info) ([]byte, bool) {
 	// nolint: prealloc
 	var confs []string
 	for _, file := range info.Contents {
@@ -684,7 +728,11 @@ func conffiles(info *nfpm.Info) []byte {
 			confs = append(confs, files.NormalizeAbsoluteFilePath(file.Destination))
 		}
 	}
-	return []byte(strings.Join(confs, "\n") + "\n")
+	if len(confs) == 0 {
+		return nil, false
+	}
+
+	return []byte(strings.Join(confs, "\n") + "\n"), true
 }
 
 func createTriggers(info *nfpm.Info) []byte {
