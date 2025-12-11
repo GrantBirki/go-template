@@ -35,8 +35,12 @@ export PLATFORM
 export VERSION
 export ARCH
 
-# make the vendor/ directory if it doesn't exist
+# ensure vendored source and tools directories exist
 mkdir -p "$DIR/vendor/"
+mkdir -p "$DIR/vendor_bin/"
+
+# Prefer vendored tools over system ones
+export PATH="$DIR/vendor_bin/:$PATH"
 
 # Mark the current GitHub organization based on the remote URL
 # This is used to set GOPRIVATE for private repositories
