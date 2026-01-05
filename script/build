@@ -28,7 +28,14 @@ for arg in "$@"; do
   fi
 done
 
-source script/env "${FILTERED_ARGS[@]}"
+# Bash 3.2 (macOS default) treats empty arrays as unset when nounset (-u) is
+# enabled; guard expansions to avoid "unbound variable" errors when no flags are
+# provided.
+if ((${#FILTERED_ARGS[@]})); then
+  source script/env "${FILTERED_ARGS[@]}"
+else
+  source script/env
+fi
 
 # Get build information for embedding into binary
 COMMIT_SHA="$(git rev-parse HEAD)"
@@ -40,8 +47,16 @@ goreleaser check
 
 if [[ "$RELEASE_MODE" == "true" ]]; then
   # Release mode: use goreleaser release
-  goreleaser release --clean "${FILTERED_ARGS[@]}"
+  if ((${#FILTERED_ARGS[@]})); then
+    goreleaser release --clean "${FILTERED_ARGS[@]}"
+  else
+    goreleaser release --clean
+  fi
 else
   # Build mode: use goreleaser build with snapshot
-  goreleaser build --snapshot --clean "${FILTERED_ARGS[@]}"
+  if ((${#FILTERED_ARGS[@]})); then
+    goreleaser build --snapshot --clean "${FILTERED_ARGS[@]}"
+  else
+    goreleaser build --snapshot --clean
+  fi
 fi

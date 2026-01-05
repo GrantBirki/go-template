@@ -30,3 +30,6 @@ tmp/
 
 /go-template
 /go-template.exe
+
+.gocache
+.gomodcache
