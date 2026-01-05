@@ -9,8 +9,12 @@ go fmt -mod=vendor ./...
 say "$GREEN" ok "Formatting done"
 
 say "$BLUE" lint "Tidying modules"
-go mod tidy
-say "$GREEN" ok "Modules tidy"
+if [[ "${GOPROXY:-}" == "off" ]]; then
+  say "$BLUE" lint "Skipping go mod tidy (GOPROXY=off; relying on vendor/)"
+else
+  go mod tidy
+  say "$GREEN" ok "Modules tidy"
+fi
 
 if [[ "${CI:-}" == "true" ]]; then
   if git diff --quiet; then
