@@ -1,12 +1,12 @@
 # go-template
 
-A super simple starter Go template for building CLI applications with Cobra. This project provides a solid foundation with modern Go best practices, including 100% dependency vendoring, hermetic builds, and SLSA Level 3 security attestations.
+A super simple starter Go template for building CLI applications with Cobra. This project provides a solid foundation with modern Go best practices, including 100% dependency vendoring, hermetic builds, and build provenance attestations.
 
 ## 🚀 Features
 
 - **Simple CLI**: Built with [Cobra](https://github.com/spf13/cobra)
 - **Hermetic Builds**: All dependencies are vendored and builds work offline
-- **SLSA Level 3**: Supply chain security with build provenance attestations
+- **Build Provenance**: Release artifacts include verifiable provenance attestations
 - **Cross-Platform**: Builds for Linux, macOS, Windows, and FreeBSD
 - **Modern Go**: Uses Go modules with 100% dependency vendoring
 - **CI/CD Ready**: GitHub Actions workflows for testing, linting, and releasing
@@ -23,6 +23,9 @@ script/bootstrap
 
 # Test the CLI
 script/test
+
+# Exercise the compiled CLI as a consumer
+script/acceptance
 
 # Build the CLI
 script/build
@@ -46,15 +49,23 @@ script/bootstrap
 
 ### `script/test`
 
-Runs the complete test suite with coverage reporting.
+Runs the unit test suite once with the race detector and enforces 100% statement and function coverage for first-party packages under `internal/`.
 
 ```bash
 script/test
 ```
 
+### `script/acceptance`
+
+Builds the real CLI from vendored modules and verifies its default, flag, help, and error behavior.
+
+```bash
+script/acceptance
+```
+
 ### `script/lint`
 
-Formats code and runs `golangci-lint` with auto-fixing enabled.
+Formats first-party Go code and fails in CI when formatting changes are required.
 
 ```bash
 script/lint
@@ -62,14 +73,14 @@ script/lint
 
 ### `script/build`
 
-Builds binaries using GoReleaser with two modes:
+Builds the current-platform development binary directly with the pinned Go toolchain and vendored modules. Release builds use the checksum-verified GoReleaser package committed under `vendor_bin/`.
 
 ```bash
-# Development build (snapshot mode)
-script/build [flags]
+# Development build
+script/build [go build flags]
 
-# Release build (for tagged releases and publishing to GitHub)
-script/build --release [flags]
+# Linux amd64 release build (used by the release workflow)
+script/build --release [goreleaser flags]
 ```
 
 ### `script/update`
@@ -104,12 +115,13 @@ This project uses **100% dependency vendoring** for hermetic builds:
 
 - All dependencies are committed in the `vendor/` directory
 - `GOPROXY=off` and `GOSUMDB=off` ensure no network access during builds
-- Builds are reproducible and work completely offline
-- `SOURCE_DATE_EPOCH` is set for deterministic builds
+- Bootstrap, tests, acceptance tests, linting, and builds work completely offline after the pinned Go toolchain is installed
+- Release builds verify and use the committed GoReleaser package instead of an ambient installation
+- Release builds set `SOURCE_DATE_EPOCH` from the source commit
 
-### SLSA Level 3 Compliance
+### Build Provenance
 
-The release workflow implements SLSA Level 3 security:
+The release workflow creates and verifies build provenance attestations:
 
 1. **Build**: Creates binaries with full provenance tracking
 2. **Sign**: Generates cryptographic attestations using GitHub's OIDC
@@ -152,7 +164,7 @@ export GOFLAGS="-mod=vendor"  # Force vendor mode
 
 ## 📋 CI/CD Workflows
 
-- **Test**: Runs tests on every push and PR
+- **Test**: Runs unit and acceptance tests on every push and PR
 - **Lint**: Code formatting and linting checks
-- **Build**: Verifies builds work on multiple platforms
-- **Release**: Triggered by git tags, creates signed releases with SLSA attestations
+- **Build**: Verifies the offline current-platform build
+- **Release**: Triggered by git tags, creates releases with build provenance attestations

@@ -1,8 +1,10 @@
 # Vendored Binaries
 
-This directory contains vendored binaries that are used by the project. These binaries are included to ensure consistent builds and to avoid dependency on external tools.
+This directory contains the exact GoReleaser package used by Linux `amd64` release builds. Normal development builds use the pinned Go toolchain directly and do not require GoReleaser.
 
-All binaries must have proper attestations before they can be added here. For example:
+`script/build --release` verifies `goreleaser_2.11.2_amd64.deb` against its committed SHA-256 file, extracts it into the ignored `.tools/` directory without global installation, verifies the reported version, and invokes that binary. Release builds therefore do not trust an ambient GoReleaser installation.
+
+Vendored release tools must have a committed checksum and proper upstream attestations before they are added here. For example:
 
 ```bash
 $ gh attestation verify --repo goreleaser/goreleaser ./vendor_bin/goreleaser_2.11.2_amd64.deb

@@ -4,6 +4,22 @@ set -euo pipefail
 
 source script/env "$@"
 
-count=10
+coverage_file="${DIR}/coverage.out"
 
-go test -mod=vendor -race -count $count -v -cover -coverprofile=coverage.out ./...
+go test -p=1 -race -count=1 -v -covermode=atomic -coverpkg=./internal/... -coverprofile="$coverage_file" ./internal/...
+
+coverage_report="$(go tool cover -func="$coverage_file")"
+printf '%s\n' "$coverage_report"
+
+incomplete_functions="$(printf '%s\n' "$coverage_report" | awk '$1 != "total:" && $NF != "100.0%"')"
+if [[ -n "$incomplete_functions" ]]; then
+	echo "First-party function coverage must be 100%." >&2
+	printf '%s\n' "$incomplete_functions" >&2
+	exit 1
+fi
+
+total_coverage="$(printf '%s\n' "$coverage_report" | awk '$1 == "total:" { print $NF }')"
+if [[ "$total_coverage" != "100.0%" ]]; then
+	echo "First-party statement coverage must be 100%; got ${total_coverage:-unknown}." >&2
+	exit 1
+fi

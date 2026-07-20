@@ -5,6 +5,10 @@ import (
 	"testing"
 )
 
+func TestDefaultBuildInfoReader(t *testing.T) {
+	_, _ = defaultBuildInfoReader()
+}
+
 func TestString(t *testing.T) {
 	// Save original values
 	origTag := tag
