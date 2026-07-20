@@ -164,7 +164,8 @@ export GOFLAGS="-mod=vendor"  # Force vendor mode
 
 ## 📋 CI/CD Workflows
 
-- **Test**: Runs unit and acceptance tests on every push and PR
+- **Test**: Runs unit tests and enforces coverage on every push and PR
+- **Acceptance**: Exercises the compiled CLI as a consumer on every push and PR
 - **Lint**: Code formatting and linting checks
 - **Build**: Verifies the offline current-platform build
 - **Release**: Triggered by git tags, creates releases with build provenance attestations
