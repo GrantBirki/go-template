@@ -1,31 +1,20 @@
 #!/usr/bin/env bash
 
-# Build script for the Go CLI application
-#
 # Usage:
-#   script/build [flags]          - Build binaries using goreleaser build (snapshot mode)
-#   script/build --release [flags] - Release binaries using goreleaser release
-#
-# The --release flag enables release mode, which:
-#   - Sets BUILD_RELEASE_MODE=1 environment variable
-#   - Uses 'goreleaser release' instead of 'goreleaser build'
-#   - Removes the --release flag before passing args to goreleaser
-#
-# All other flags are passed through to the underlying goreleaser command.
+#   script/build [go build flags]
+#   script/build --release [goreleaser flags]
 
 set -euo pipefail
 
-# Check if --release flag is present and handle it
 RELEASE_MODE=false
 FILTERED_ARGS=()
 
 for arg in "$@"; do
-  if [[ "$arg" == "--release" ]]; then
-    RELEASE_MODE=true
-    export BUILD_RELEASE_MODE=1
-  else
-    FILTERED_ARGS+=("$arg")
-  fi
+	if [[ "$arg" == "--release" ]]; then
+		RELEASE_MODE=true
+	else
+		FILTERED_ARGS+=("$arg")
+	fi
 done
 
 # Bash 3.2 (macOS default) treats empty arrays as unset when nounset (-u) is
@@ -37,26 +26,43 @@ else
   source script/env
 fi
 
-# Get build information for embedding into binary
-COMMIT_SHA="$(git rev-parse HEAD)"
-BUILD_TIME="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+if [[ "$RELEASE_MODE" != "true" ]]; then
+	BUILD_OUTPUT="${BUILD_OUTPUT:-${DIR}/go-template}"
+	if ((${#FILTERED_ARGS[@]})); then
+		go build -trimpath -o "$BUILD_OUTPUT" "${FILTERED_ARGS[@]}" ./cmd/go-template
+	else
+		go build -trimpath -o "$BUILD_OUTPUT" ./cmd/go-template
+	fi
+	exit 0
+fi
 
-#go build -mod=vendor -ldflags "-X ${PROJECT_MODULE_PATH}/internal/version.commit=${COMMIT_SHA} -X ${PROJECT_MODULE_PATH}/internal/version.buildTime=${BUILD_TIME}" -v ./cmd/go-template
+if [[ "$(uname -s)" != "Linux" || "$(uname -m)" != "x86_64" ]]; then
+	echo "Release builds require Linux x86_64." >&2
+	exit 1
+fi
 
-goreleaser check
+GORELEASER_VERSION="$(cat "${DIR}/.goreleaser-version")"
+GORELEASER_PACKAGE="goreleaser_${GORELEASER_VERSION}_amd64.deb"
 
-if [[ "$RELEASE_MODE" == "true" ]]; then
-  # Release mode: use goreleaser release
-  if ((${#FILTERED_ARGS[@]})); then
-    goreleaser release --clean "${FILTERED_ARGS[@]}"
-  else
-    goreleaser release --clean
-  fi
+(
+	cd "${DIR}/vendor_bin"
+	sha256sum --check "${GORELEASER_PACKAGE}.sha256"
+)
+
+GORELEASER_ROOT="${DIR}/.tools/goreleaser-${GORELEASER_VERSION}"
+mkdir -p "$GORELEASER_ROOT"
+ar p "${DIR}/vendor_bin/${GORELEASER_PACKAGE}" data.tar.gz | tar -xzf - -C "$GORELEASER_ROOT"
+GORELEASER_BIN="${GORELEASER_ROOT}/usr/bin/goreleaser"
+
+GORELEASER_VERSION_OUTPUT="$("$GORELEASER_BIN" --version)"
+if [[ "$GORELEASER_VERSION_OUTPUT" != *"$GORELEASER_VERSION"* ]]; then
+	echo "Expected GoReleaser ${GORELEASER_VERSION}, got: ${GORELEASER_VERSION_OUTPUT}" >&2
+	exit 1
+fi
+
+"$GORELEASER_BIN" check
+if ((${#FILTERED_ARGS[@]})); then
+	"$GORELEASER_BIN" release --clean "${FILTERED_ARGS[@]}"
 else
-  # Build mode: use goreleaser build with snapshot
-  if ((${#FILTERED_ARGS[@]})); then
-    goreleaser build --snapshot --clean "${FILTERED_ARGS[@]}"
-  else
-    goreleaser build --snapshot --clean
-  fi
+	"$GORELEASER_BIN" release --clean
 fi

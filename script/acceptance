@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+source script/env
+
+mkdir -p "${DIR}/tmp"
+acceptance_dir="$(mktemp -d "${DIR}/tmp/acceptance.XXXXXX")"
+binary="${acceptance_dir}/go-template"
+
+cleanup() {
+	rm -f "$binary"
+	rmdir "$acceptance_dir"
+}
+trap cleanup EXIT
+
+fail() {
+	echo "acceptance: $1" >&2
+	exit 1
+}
+
+assert_output() {
+	local expected="$1"
+	shift
+	local actual
+	actual="$("$binary" "$@")"
+	[[ "$actual" == "$expected" ]] || fail "expected '$expected', got '$actual'"
+}
+
+BUILD_OUTPUT="$binary" script/build
+
+assert_output "Hello World!"
+assert_output "Hello Ada!" --name Ada
+assert_output "Hello Grace!" -n Grace
+
+help_output="$("$binary" --help)"
+[[ "$help_output" == *"Usage:"* ]] || fail "help output did not include Usage"
+[[ "$help_output" == *"-n, --name string"* ]] || fail "help output did not include the name flag"
+
+if invalid_output="$("$binary" --not-a-flag 2>&1)"; then
+	fail "invalid flag unexpectedly succeeded"
+fi
+[[ "$invalid_output" == *"unknown flag"* ]] || fail "invalid flag output was not useful"
+
+echo "Acceptance tests passed."

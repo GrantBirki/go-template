@@ -8,9 +8,9 @@ import (
 )
 
 func main() {
-	err := cmd.Run()
+	err := cmd.Run(os.Args[1:], os.Stdout, os.Stderr)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

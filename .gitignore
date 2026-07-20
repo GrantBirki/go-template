@@ -33,3 +33,4 @@ tmp/
 
 .gocache
 .gomodcache
+.tools/
