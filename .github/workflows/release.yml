@@ -12,11 +12,15 @@ jobs:
     if: github.repository == 'grantbirki/go-template' # change this to your repository
     permissions:
       contents: write
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
 
     steps:
+      - uses: openai/fence@db291f5c51949e6e6ec1634621b36dc4bbf3d54a # pin@v0.8.7
+        with:
+          mode: audit
+
       - name: checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # pin@v6.0.2
         with:
@@ -48,12 +52,16 @@ jobs:
 
   sign:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
       attestations: write
       contents: read
     steps:
+      - uses: openai/fence@db291f5c51949e6e6ec1634621b36dc4bbf3d54a # pin@v0.8.7
+        with:
+          mode: audit
+
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # pin@8.0.1
         with:
           artifact-ids: ${{ needs.release.outputs.artifact-id }}
@@ -66,9 +74,13 @@ jobs:
 
   verify:
     permissions: {}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: [release, sign]
     steps:
+      - uses: openai/fence@db291f5c51949e6e6ec1634621b36dc4bbf3d54a # pin@v0.8.7
+        with:
+          mode: audit
+
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # pin@8.0.1
         with:
           artifact-ids: ${{ needs.release.outputs.artifact-id }}
