@@ -13,6 +13,8 @@ This repository is a public Go template for small command-line applications. Kee
 
 ## Scripts
 
+`script/env` sets `GOTMPDIR` to the ignored `tmp/go` directory under the repository root and creates it before builds and tests. Use the repository scripts to inherit this setting; direct Go commands and editor test runners need the same environment. This keeps temporary Go build binaries with the checkout without changing the process-wide `TMPDIR`.
+
 - `script/bootstrap` verifies that the vendored dependency graph resolves offline.
 - `script/test` runs the Go unit tests and enforces 100% statement and function coverage for first-party packages under `internal/`.
 - `script/acceptance` builds the real CLI offline and exercises its consumer-facing behavior.

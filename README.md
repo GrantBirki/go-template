@@ -135,6 +135,17 @@ The workflow uses:
 
 ### Environment Configuration
 
+`script/env` sets `GOTMPDIR` to the ignored `tmp/go` directory under the repository root and creates it before builds and tests. Use the repository scripts to inherit this setting; direct Go commands and editor test runners need the same environment. This keeps temporary Go build binaries with the checkout without changing the process-wide `TMPDIR`.
+
+For a direct command from the repository root, invoke Bash explicitly so the example also works from an interactive zsh session:
+
+```bash
+bash <<'BASH'
+source script/env
+go test ./...
+BASH
+```
+
 The `script/env` script sets up the hermetic environment:
 
 ```bash
