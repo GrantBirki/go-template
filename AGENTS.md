@@ -43,3 +43,7 @@ Keep unit tests fast, deterministic, and independent of live services. Consumer-
 ## Documentation
 
 Update `README.md`, scripts, workflows, and this file together when their contracts change. Keep Markdown prose unwrapped and keep examples generic enough for a public template.
+
+## Actions Cache Access
+
+GitHub Actions workflows set `cache-mode: none` to prevent dependency cache restores and saves. Committed vendored dependencies and uploaded build artifacts remain separate from the Actions cache.

@@ -3,6 +3,8 @@ name: "Copilot Setup Steps"
 # Allows you to test the setup steps from your repository's "Actions" tab
 on: workflow_dispatch
 
+cache-mode: none
+
 jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
@@ -21,3 +23,4 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # pin@v6
         with:
           go-version-file: 'go.mod'
+          cache: false
