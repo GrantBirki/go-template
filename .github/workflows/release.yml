@@ -19,7 +19,7 @@ jobs:
       artifact-id: ${{ steps.upload-artifact.outputs.artifact-id }}
 
     steps:
-      - uses: openai/fence@c22db5d5c19f83d1d7b40e9def37a7a6099bbca2 # pin@v0.8.10
+      - uses: openai/fence@530cce8d45da60a7c353da45511639ad5e154e9a # pin@v0.10.1
         with:
           mode: audit
 
@@ -60,7 +60,7 @@ jobs:
       attestations: write
       contents: read
     steps:
-      - uses: openai/fence@c22db5d5c19f83d1d7b40e9def37a7a6099bbca2 # pin@v0.8.10
+      - uses: openai/fence@530cce8d45da60a7c353da45511639ad5e154e9a # pin@v0.10.1
         with:
           mode: audit
 
@@ -70,7 +70,7 @@ jobs:
           path: "dist/"
 
       - name: attest build provenance
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # pin@v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # pin@v4.2.2
         with:
           subject-path: "dist/"
 
@@ -79,7 +79,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [release, sign]
     steps:
-      - uses: openai/fence@c22db5d5c19f83d1d7b40e9def37a7a6099bbca2 # pin@v0.8.10
+      - uses: openai/fence@530cce8d45da60a7c353da45511639ad5e154e9a # pin@v0.10.1
         with:
           mode: audit
 
