@@ -7,6 +7,8 @@ on:
 
 permissions: {}
 
+cache-mode: none
+
 jobs:
   release:
     if: github.repository == 'grantbirki/go-template' # change this to your repository

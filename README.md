@@ -180,3 +180,5 @@ export GOFLAGS="-mod=vendor"  # Force vendor mode
 - **Lint**: Code formatting and linting checks
 - **Build**: Verifies the offline current-platform build
 - **Release**: Triggered by git tags, creates releases with build provenance attestations
+
+GitHub Actions workflows set `cache-mode: none` to prevent dependency cache restores and saves. Committed vendored dependencies and uploaded build artifacts remain separate from the Actions cache.
